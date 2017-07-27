@@ -7,9 +7,11 @@ describe ForemanMonit::Exporter do
   let(:target) { '../../tmp' }
   let(:chruby) {}
   let(:procfile) { File.join(File.dirname(__FILE__), '../../Procfile') }
+  let(:rubyver) {}
+  let(:rvm) {}
 
   let(:exporter) do
-    ForemanMonit::Exporter.new(app: app, env: env, user: user, target: target, chruby: chruby, procfile: procfile)
+    ForemanMonit::Exporter.new(app: app, env: env, user: user, target: target, chruby: chruby, procfile: procfile, rubyver: rubyver, rvm: rvm)
   end
 
 
@@ -61,6 +63,43 @@ describe ForemanMonit::Exporter do
     end
 
   end
+
+  describe '#rvm_prefix' do
+    context 'without @rubyver defined' do
+      it 'returns an empty string' do
+        expect(exporter.rvm_prefix).to be == ''
+      end
+    end
+
+    context 'with @rubyver defined' do
+      let(:user) { ENV['USER'] }
+      let(:rubyver) { '2.0.0-p247@foreman-monit' }
+
+      it 'returns with a rvm prefix' do
+        expect(exporter.rvm_prefix).to be == "#{ENV['HOME']}/.rvm/bin/rvm 2.0.0-p247@foreman-monit do"
+      end
+    end
+
+    context 'with @rubyver and rvm defined' do
+      let(:rvm) { '/usr/local/rvm/bin/rvm' }
+      let(:rubyver) { '2.0.0-p247@foreman-monit' }
+
+      it 'returns with a rvm prefix' do
+        expect(exporter.rvm_prefix).to be == '/usr/local/rvm/bin/rvm 2.0.0-p247@foreman-monit do'
+      end
+    end
+  end
+
+  describe '#rvm_path' do
+    context 'without @rvm defined' do
+      let(:user) { ENV['USER'] }
+
+      it 'returns with the rvm path of current user' do
+        expect(exporter.send(:rvm_path)).to be == "#{ENV['HOME']}/.rvm/bin/rvm"
+      end
+    end
+  end
+
 
   describe '#base_dir' do
     it 'returns the current base directory' do

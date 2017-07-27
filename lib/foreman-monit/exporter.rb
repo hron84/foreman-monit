@@ -9,10 +9,16 @@ module ForemanMonit
       @target = options[:target]
       @env = options[:env]
       @chruby = options[:chruby]
+      @rubyver = options[:rubyver]
+      @rvm = options[:rvm]
+
       @procfile = options[:procfile]
 
       @su = which_su
+      @sudo = which_sudo
+      @sudo_opts = "#{@sudo} -H -n -E"
       @bash = which_bash
+      
 
       @engine = Foreman::Engine.new
       load_procfile
@@ -25,7 +31,7 @@ module ForemanMonit
       FileUtils.rm Dir.glob("#{@target}/*.conf")
       @engine.each_process do |name, process|
         file_name = File.join(@target, "#{@app}-#{name}.conf")
-        File.open(file_name, 'w') { |f| f.write ERB.new(File.read(File.expand_path('../../../templates/monitrc.erb', __FILE__))).result(binding) }
+        File.open(file_name, 'w') { |f| f.write ERB.new(File.read(File.expand_path('../../../templates/monitrc.erb', __FILE__)), nil, '-').result(binding) }
       end
     end
 
@@ -41,6 +47,14 @@ module ForemanMonit
     def chruby_init
       if @chruby
         "chruby #{@chruby} &&"
+      else
+        ''
+      end
+    end
+
+    def rvm_prefix
+      if @rubyver
+        "#{rvm_path} #{@rubyver} do"
       else
         ''
       end
@@ -68,8 +82,21 @@ module ForemanMonit
       `which su`.chomp
     end
 
+    def which_sudo
+      `which sudo`.chomp
+    end
+
     def which_bash
-      `which bash`.chomp
+      bash = `which bash`.chomp
+      if bash.empty?
+        bash = '/bin/sh'
+      end
+
+      bash
+    end
+
+    def rvm_path
+      @rvm || File.expand_path("~#{@user}/.rvm/bin/rvm")
     end
 
     def load_env
